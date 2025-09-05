@@ -2,6 +2,34 @@ import pytest
 from model import Question
 
 
+@pytest.fixture
+def simple_question():
+    """Fixture that provides a basic question with no choices."""
+    return Question(title='What is the capital of France?', points=10)
+
+@pytest.fixture
+def multiple_choice_question():
+    """Fixture that provides a question with multiple choices including correct answers."""
+    question = Question(title='Which of the following are programming languages?', points=25, max_selections=3)
+    question.add_choice('Python', True)
+    question.add_choice('JavaScript', True)
+    question.add_choice('HTML', False)
+    question.add_choice('CSS', False)
+    question.add_choice('Java', True)
+    question.add_choice('Photoshop', False)
+    return question
+
+@pytest.fixture
+def single_choice_question():
+    """Fixture that provides a single-choice question with one correct answer."""
+    question = Question(title='What is 2 + 2?', points=5, max_selections=1)
+    question.add_choice('3', False)
+    question.add_choice('4', True)
+    question.add_choice('5', False)
+    question.add_choice('6', False)
+    return question
+
+
 def test_create_question():
     question = Question(title='q1')
     assert question.id != None
@@ -141,3 +169,25 @@ def test_question_maintains_choice_order():
     
     for i, expected_text in enumerate(texts):
         assert question.choices[i].text == expected_text
+
+def test_multiple_choice_question_correct_selections(multiple_choice_question):
+    """Test correcting selections with multiple choice question fixture."""
+    python_id = multiple_choice_question.choices[0].id  # Python (correct)
+    html_id = multiple_choice_question.choices[2].id    # HTML (incorrect)
+    java_id = multiple_choice_question.choices[4].id    # Java (correct)
+    
+    selected_ids = [python_id, html_id, java_id]
+    correct_selections = multiple_choice_question.correct_selected_choices(selected_ids)
+    
+    assert len(correct_selections) == 2
+    assert python_id in correct_selections
+    assert java_id in correct_selections
+    assert html_id not in correct_selections
+
+def test_single_choice_question_selection_limit(single_choice_question):
+    """Test that single choice question enforces selection limit."""
+    choice1_id = single_choice_question.choices[0].id
+    choice2_id = single_choice_question.choices[1].id
+    
+    with pytest.raises(Exception, match="Cannot select more than 1 choices"):
+        single_choice_question.correct_selected_choices([choice1_id, choice2_id])
